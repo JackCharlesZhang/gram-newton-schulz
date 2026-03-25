@@ -8,7 +8,7 @@ import seaborn as sns
 import torch
 from tqdm import tqdm
 
-from .. import StandardNewtonSchulz, GramNewtonSchulz
+from gram_newton_schulz import StandardNewtonSchulz, GramNewtonSchulz
 import argparse
 
 PE_coeffs_list = [
@@ -143,8 +143,8 @@ if __name__ == "__main__":
                 torch.logspace(-4, -7, steps=n - 2),
             )),
             torch.concat((
-                torch.logspace(0, -10, steps=1000, device=DEVICE, dtype=torch.float64),
-                torch.logspace(-4, -10, steps=100, device=DEVICE, dtype=torch.float64),
+                torch.logspace(0, -10, steps=n - n//11, device=DEVICE, dtype=torch.float64),
+                torch.logspace(-4, -10, steps=n//11, device=DEVICE, dtype=torch.float64),
             )),
         ] * 5 + [
             torch.distributions.Gamma(concentration=3, rate=0.5).sample((n,))

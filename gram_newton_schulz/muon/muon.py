@@ -19,7 +19,7 @@ from .muon_utils.muon_matrix_split_utils import (
 from ..standard_newton_schulz import StandardNewtonSchulz
 from ..gram_newton_schulz import GramNewtonSchulz
 from ..coefficients import POLAR_EXPRESS_COEFFICIENTS, YOU_COEFFICIENTS
-from ..stability.restart_autotune import find_best_restarts
+from ..restart_autotune import find_best_restarts
 
 class Muon(Optimizer):
     """

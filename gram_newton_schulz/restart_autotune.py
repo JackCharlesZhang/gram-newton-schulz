@@ -5,7 +5,7 @@ Find locations of restarts.
 from collections import defaultdict
 from itertools import combinations
 from decimal import Decimal, getcontext, Overflow
-from ..coefficients import POLAR_EXPRESS_COEFFICIENTS
+from .coefficients import POLAR_EXPRESS_COEFFICIENTS
 
 getcontext().prec = 100
 
@@ -78,55 +78,3 @@ def find_best_restarts(x_eigenvalues, coefs, most_negative_gram_eigenvalue, num_
 
     print(f"\nBest combination: {best_restarts} with max Q = {best_max_q:.6f}")
     return best_restarts
-
-if __name__ == "__main__":
-    import argparse
-    import numpy as np
-
-    parser = argparse.ArgumentParser(
-        description='Analyze numerical stability of Gram Newton-Schulz iteration'
-    )
-    parser.add_argument(
-        '--most-negative-gram-eigenvalue',
-        type=float,
-        default=-4e-4,
-        help='Most negative Gram eigenvalue to add to XX^T (default: -4e-4)'
-    )
-    parser.add_argument(
-        '--coefs',
-        type=str,
-        default=None,
-        help='Comma-separated list of coefficient tuples (a,b,c;a,b,c;...). If not provided, uses default POLAR_EXPRESS_COEFFICIENTS.'
-    )
-    parser.add_argument(
-        '--num-restarts',
-        type=int,
-        default=1,
-        help='Number of restart positions to find (default: 1)'
-    )
-
-    args = parser.parse_args()
-
-    if args.coefs:
-        coefs = []
-        for coef_str in args.coefs.split(';'):
-            a, b, c = map(float, coef_str.split(','))
-            coefs.append((a, b, c))
-    else:
-        coefs = POLAR_EXPRESS_COEFFICIENTS + [POLAR_EXPRESS_COEFFICIENTS[-1]] * 10
-
-    x_eigenvalues = np.logspace(0, -10, 10000)
-
-    if args.num_restarts == 1:
-        print("Finding best restart position for Gram Newton-Schulz...")
-    else:
-        print(f"Finding best {args.num_restarts} restart positions...")
-
-    best_restarts = find_best_restarts(
-        x_eigenvalues, coefs, args.most_negative_gram_eigenvalue, num_restarts=args.num_restarts
-    )
-
-    if args.num_restarts == 1:
-        print(f"\nBest restart position: {best_restarts}")
-    else:
-        print(f"\nBest restart positions: {best_restarts}")
