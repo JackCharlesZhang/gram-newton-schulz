@@ -2,46 +2,39 @@
 """
 Find locations of restarts.
 """
-from collections import defaultdict
 from itertools import combinations
-import mpmath
-from .coefficients import POLAR_EXPRESS_COEFFICIENTS
+import numpy as np
+import gmpy2
+import flamp
 
-mpmath.mp.dps = 100
+flamp.set_dps(100)
 
-def run_gram_newton_schulz(x, coefs, most_negative_gram_eigenvalue, reset_indices=None):
+def run_gram_newton_schulz(x_eigenvalues, coefs, most_negative_gram_eigenvalue, reset_indices=None):
     if reset_indices is None:
         reset_indices = []
 
+    x_eigenvalues = flamp.to_mp(x_eigenvalues)
+    most_negative_gram_eigenvalue = gmpy2.mpfr(most_negative_gram_eigenvalue)
+    coefs = [(gmpy2.mpfr(a), gmpy2.mpfr(b), gmpy2.mpfr(c)) for a, b, c in coefs]
+    ones = flamp.ones
+
     q_values = {}
-    q = mpmath.mpf(1)
-    x = mpmath.mpf(x)
-    most_negative_gram_eigenvalue = mpmath.mpf(most_negative_gram_eigenvalue)
-    r = x * x + most_negative_gram_eigenvalue
+    q = ones(len(x_eigenvalues))
+    r = x_eigenvalues * x_eigenvalues + most_negative_gram_eigenvalue
 
     for iter_idx, (a, b, c) in enumerate(coefs):
         if (iter_idx == 0) or (iter_idx in reset_indices):
             if iter_idx != 0:
-                x = q * x
-                r = x * x + most_negative_gram_eigenvalue
-            q = mpmath.mpf(1)
+                x_eigenvalues = q * x_eigenvalues
+                r = x_eigenvalues * x_eigenvalues + most_negative_gram_eigenvalue
+            q = ones(len(x_eigenvalues))
 
-        a, b, c = mpmath.mpf(a), mpmath.mpf(b), mpmath.mpf(c)
         z = c * r * r + b * r + a
         q *= z
         r *= z * z
-        q_values[f'Q_{iter_idx}'] = float(q)
+        q_values[f'Q_{iter_idx}'] = q.astype(np.float64)
 
     return q_values
-
-
-def q_polynomials(x_eigenvalues, coefs, most_negative_gram_eigenvalue, reset_indices=None):
-    q_polynomial_at_t = defaultdict(list)
-    for x_eigenval in x_eigenvalues:
-        q_values = run_gram_newton_schulz(x_eigenval, coefs, most_negative_gram_eigenvalue, reset_indices)
-        for key, value in q_values.items():
-            q_polynomial_at_t[key].append(value)
-    return q_polynomial_at_t
 
 
 def find_best_restarts(x_eigenvalues, coefs, most_negative_gram_eigenvalue, num_restarts=1):
@@ -59,15 +52,15 @@ def find_best_restarts(x_eigenvalues, coefs, most_negative_gram_eigenvalue, num_
 
     for i, restart_combo in enumerate(combinations(possible_positions, num_restarts)):
         test_restarts = list(restart_combo)
-        q_results = q_polynomials(x_eigenvalues, coefs, most_negative_gram_eigenvalue, reset_indices=test_restarts)
-        max_q = max(abs(v) for vals in q_results.values() for v in vals)
+        q_results = run_gram_newton_schulz(x_eigenvalues, coefs, most_negative_gram_eigenvalue, reset_indices=test_restarts)
+        max_q = max(np.max(np.abs(vals)) for vals in q_results.values())
 
         if max_q < best_max_q or (best_max_q == float('inf') and max_q != float('inf')):
             best_max_q = max_q
             best_restarts = test_restarts
 
         if (i + 1) % max(1, total_combinations // 10) == 0 or i == 0:
-            print(f"  [{i+1}/{total_combinations}] Best so far: {best_restarts} with max Q = {best_max_q:.6f}")
+            print(f"  [{i+1}/{total_combinations}] Best so far: {best_restarts} with max Q = {best_max_q:.3}")
 
     if best_max_q == float('inf'):
         raise ValueError(
@@ -75,5 +68,5 @@ def find_best_restarts(x_eigenvalues, coefs, most_negative_gram_eigenvalue, num_
             f"Need more restarts to achieve numerical stability. Try increasing num_restarts."
         )
 
-    print(f"\nBest restart locations (set `gram_newton_schulz_reset_iterations` in newton_schulz/gram_newton_schulz.py to this): {best_restarts} with max Q = {best_max_q:.6f}")
+    print(f"\nBest restart locations (set `gram_newton_schulz_reset_iterations` in newton_schulz/gram_newton_schulz.py to this): {best_restarts} with max Q = {best_max_q:.3}")
     return best_restarts
