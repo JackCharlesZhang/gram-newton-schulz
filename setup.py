@@ -18,7 +18,7 @@ setup(
     ],
     extras_require={
         "kernels": [
-            "quack-kernels==0.3.3",
+            "quack-kernels @ git+https://github.com/Dao-AILab/quack.git@490a300b09981fe9565c82ff64d5448a6bc1bb7d",
             "nvidia-cutlass-dsl==4.4.1",
         ],
     },
