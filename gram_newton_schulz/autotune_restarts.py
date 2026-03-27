@@ -52,7 +52,7 @@ def main():
             a, b, c = map(float, coef_str.split(','))
             coefs.append((a, b, c))
     else:
-        coefs = POLAR_EXPRESS_COEFFICIENTS + [POLAR_EXPRESS_COEFFICIENTS[-1]] * 10
+        coefs = POLAR_EXPRESS_COEFFICIENTS
 
     x_eigenvalues = np.logspace(0, -10, 10000)
 

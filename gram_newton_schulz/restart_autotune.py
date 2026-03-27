@@ -68,7 +68,10 @@ def find_best_restarts(x_eigenvalues, coefs, most_negative_gram_eigenvalue, num_
     print(f"Testing {total_combinations} combinations of {num_restarts} restart position(s)...")
 
     def stability_metric(q_values):
-        return max(np.max(np.abs(vals)) for vals in q_values.values())
+        def condition(vals):
+            abs_vals = np.abs(vals)
+            return abs_vals.max() / abs_vals.min()
+        return max(condition(vals) for vals in q_values.values())
 
     for i, restart_combo in enumerate(combinations(possible_positions, num_restarts)):
         test_restarts = list(restart_combo)
@@ -82,9 +85,9 @@ def find_best_restarts(x_eigenvalues, coefs, most_negative_gram_eigenvalue, num_
         if (i + 1) % max(1, total_combinations // 10) == 0 or i == 0:
             print(f"  [{i+1}/{total_combinations}] Best so far: {best_restarts} with max Q = {best_max_q:.3}")
 
-    if not np.isfinite(best_max_q):
+    if not np.isfinite(best_max_q) or best_max_q >= 1e8:
         raise ValueError(
-            f"All {num_restarts} restart combinations resulted in infinite Q values. "
+            f"All {num_restarts} restart combinations resulted in blowups. "
             f"Need more restarts to achieve numerical stability. Try increasing num_restarts."
         )
 
