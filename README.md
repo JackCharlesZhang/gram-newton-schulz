@@ -1,7 +1,7 @@
-# Gram Newton-Schulz: A Fast, Hardware-Aware Muon Optimizer
+# Gram Newton-Schulz: A Fast, Hardware-Aware Newton-Schulz Algorithm for Muon
 
 Authors: Jack Zhang, Noah Amsel, Berlin Chen, Tri Dao\
-Blogpost: TODO
+Blogpost: https://dao-ailab.github.io/blog/2026/gram-newton-schulz/
 
 Achieve up to 2x faster Newton-Schulz with Gram Newton-Schulz and symmetric CuTeDSL GEMM kernels!
 
@@ -11,11 +11,18 @@ What you're probably here for:
 2. Gram Newton-Schulz Restart Autotune: <https://github.com/Dao-AILab/gram-newton-schulz/blob/main/gram_newton_schulz/restart_autotune.py>
 3. Symmetric GEMMs for Hopper and Blackwell in CuTeDSL: <https://github.com/Dao-AILab/quack/blob/main/quack/gemm_symmetric.py>
 
+## About
+
+Gram Newton-Schulz is a hardware-aware algorithm for polar decomposition that is mathematically equivalent to and faster than Newton-Schulz.
+Polar decomposition is most commonly used in Muon, and Gram Newton-Schulz serves as a direct drop-in for standard Newton-Schulz with no training accuracy tradeoff.
+
+Instead of iterating on the expensive $X \in \mathbb{R}^{n \times m}$ matrix, Gram Newton-Schulz iterates on the small, square, symmetric Gram matrix $XX^\top \in \mathbb{R}^{n \times n}$, lowering FLOPs and enabling more symmetric GEMM kernels.
+
 > **Gram Newton-Schulz**
 >
 > Input: $X \in \mathbb{R}^{n \times m}$ with $n \leq m$, coefficients $\{(a_t, b_t, c_t)\}_{t=1}^5$
 >
-> 1. $X \gets X \,/\, (\|X\|_{F} + \epsilon)$ &emsp; // Normalize sing vals to $[0, 1]$. &emsp; $\epsilon = 10^{-7}$
+> 1. $X \gets X / (\\|X\\|_{F} + \epsilon)$ &emsp; // Normalize sing vals to $[0, 1]$. &emsp; $\epsilon = 10^{-7}$
 > 2. $X \gets \texttt{float16}(X)$ &emsp; // Cast to half precision for speed
 > 3. If $m < n$: &emsp; $X \gets X^\top$ &emsp; // Trick to make $XX^\top$ cheaper
 > 4. $R_0 \gets XX^\top$
@@ -34,11 +41,6 @@ What you're probably here for:
 > 9. Return $X$
 
 <img width="2799" height="1126" alt="kimi (2)" src="https://github.com/user-attachments/assets/861b3e7d-bae9-4f84-8a9c-5aa3396e02c8" />
-
-## About
-
-Gram Newton-Schulz is a hardware-aware algorithm for polar decomposition that is mathematically equivalent to and faster than Newton-Schulz.
-Polar decomposition is most commonly used in Muon, and Gram Newton-Schulz serves as a direct drop-in for standard Newton-Schulz with no training accuracy tradeoff.
 
 ## Installation
 
@@ -60,9 +62,11 @@ This will install:
 
 - gram-newton-schulz (this package)
 - nvidia-cutlass-dsl 4.4.1
-- quack-kernels @ git+https://github.com/Dao-AILab/quack.git@490a300b09981fe9565c82ff64d5448a6bc1bb7d
+- quack-kernels==0.3.7
 
 ## Usage
+
+WARNING: `torch.compile` is known to sometimes have issues with Blackwell, `TORCH_COMPILE_DISABLE=1` to disable `torch.compile`. 
 
 ### Gram Newton-Schulz
 
@@ -175,6 +179,6 @@ If you use this codebase, or otherwise find our work valuable, please cite Gram 
   title   = {Gram Newton-Schulz},
   author  = {Jack Zhang and Noah Amsel and Berlin Chen and Tri Dao},
   year    = {2026},
-  url = {TODO}
+  url     = {https://dao-ailab.github.io/blog/2026/gram-newton-schulz/}
 }
 ```

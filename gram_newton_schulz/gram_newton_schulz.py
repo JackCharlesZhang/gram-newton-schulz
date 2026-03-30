@@ -106,11 +106,8 @@ class GramNewtonSchulz:
                         RZ = torch.baddbmm(R, R, Z, beta=a)
                         R = torch.baddbmm(RZ, Z, RZ, beta=a)
                 else:
-                    Z = self.gemm_symmetric(R, R, C=R, alpha=c, beta=b) 
-                    if i == 0 or i in self.gram_newton_schulz_reset_iterations:
-                        Q = Z + a * I
-                    else:
-                        Q = self.gemm_symmetric(Q, Z, C=Q, beta=a)
+                    Z = self.gemm_symmetric(R, R, C=R, alpha=c, beta=b)
+                    Q = self.gemm_symmetric(Q, Z, C=Q, beta=a) if i != 0 and i not in self.gram_newton_schulz_reset_iterations else Z + a * I
                     if i < len(self.ns_coefficients) - 1 and i + 1 not in self.gram_newton_schulz_reset_iterations:
                         RZ = self.gemm_symmetric(R, Z, C=R, beta=a)
                         R = self.gemm_symmetric(Z, RZ, C=RZ, beta=a)

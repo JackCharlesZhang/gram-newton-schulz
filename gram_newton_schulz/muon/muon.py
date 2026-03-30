@@ -33,7 +33,11 @@ class Muon(Optimizer):
         - Single GPU training only
 
     Args:
-        params: Parameter groups
+        params: Parameter groups. Each group can specify:
+            - param_split_fn: Function to split a parameter into submatrices before orthogonalization (e.g., split Wqkv into Wq, Wk, Wv)
+            - param_recombine_fn: Function to recombine submatrices after orthogonalization back into original parameter shape
+            - 3D weights are by default treated as batched 2D weights, with the first dimension being the batch dimension
+            - See example.py for example usage
         lr: Learning rate (default: 1e-3)
         weight_decay: Weight decay coefficient (default: 0.1)
         momentum: Momentum factor (default: 0.95)
