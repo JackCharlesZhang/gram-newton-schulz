@@ -2,52 +2,73 @@
 """
 Find locations of restarts.
 """
-from collections import defaultdict
 from itertools import combinations
-from decimal import Decimal, getcontext, Overflow
+import numpy as np
 
-getcontext().prec = 100
 
-def run_gram_newton_schulz(x, coefs, most_negative_gram_eigenvalue, reset_indices=None):
+def _init_high_precision():
+    try:
+        import gmpy2
+        import flamp
+    except ImportError:
+        raise ImportError(
+            "high_precision=True requires the 'flamp' package (which provides gmpy2-backed "
+            "arbitrary-precision arrays). Install it with: pip install flamp"
+        ) from None
+    flamp.set_dps(100)
+    return gmpy2, flamp
+
+
+def simulate_perturbed_gram_newton_schulz(x_eigenvalues, coefs, perturbation, high_precision=False, reset_indices=None):
+    x_eigenvalues = x_eigenvalues.copy()
+
     if reset_indices is None:
         reset_indices = []
 
-    q_values = {}
-    q = Decimal(1)
-    r = Decimal(str(x)) * Decimal(str(x)) + Decimal(str(most_negative_gram_eigenvalue))
+    assert perturbation < 0, "Perturbation should be negative"
 
-    try:
+    if high_precision:
+        gmpy2, flamp = _init_high_precision()
+        x_eigenvalues = flamp.to_mp(x_eigenvalues)
+        perturbation = gmpy2.mpfr(perturbation)
+        coefs = [(gmpy2.mpfr(a), gmpy2.mpfr(b), gmpy2.mpfr(c)) for a, b, c in coefs]
+        ones = flamp.ones
+    else:
+        ones = np.ones
+
+    q_values = {}
+
+    with np.errstate(over='ignore', invalid='ignore'):
         for iter_idx, (a, b, c) in enumerate(coefs):
             if (iter_idx == 0) or (iter_idx in reset_indices):
                 if iter_idx != 0:
-                    x = q * Decimal(str(x))
-                    r = x * x + Decimal(str(most_negative_gram_eigenvalue))
-                q = Decimal(1)
+                    x_eigenvalues *= q
+                r = x_eigenvalues**2 + perturbation
+                q = ones(len(x_eigenvalues))
 
-            z = Decimal(str(c)) * r * r + Decimal(str(b)) * r + Decimal(str(a))
+            z = a + r*(b + r*c)
             q *= z
-            r *= z * z
-            q_values[f'Q_{iter_idx}'] = float(q)
-    except Overflow:
-        for remaining_idx in range(iter_idx, len(coefs)):
-            q_values[f'Q_{remaining_idx}'] = float('inf')
+            r *= z**2
+            q_values[f'Q_{iter_idx}'] = q.astype(np.float64)
 
     return q_values
 
 
-def q_polynomials(x_eigenvalues, coefs, most_negative_gram_eigenvalue, reset_indices=None):
-    q_polynomial_at_t = defaultdict(list)
-    for x_eigenval in x_eigenvalues:
-        q_values = run_gram_newton_schulz(x_eigenval, coefs, most_negative_gram_eigenvalue, reset_indices)
-        for key, value in q_values.items():
-            q_polynomial_at_t[key].append(value)
-    return q_polynomial_at_t
+def stability_metric(q_values):
+    def condition(vals):
+        abs_vals = np.abs(vals)
+        return abs_vals.max() / abs_vals.min()
+    return max(condition(vals) for vals in q_values.values())
 
 
-def find_best_restarts(x_eigenvalues, coefs, most_negative_gram_eigenvalue, num_restarts=1):
+def find_best_restarts(x_eigenvalues, coefs, most_negative_gram_eigenvalue, num_restarts=1, high_precision=False):
     possible_positions = list(range(1, len(coefs)))
     if num_restarts == 0:
+        q_results = simulate_perturbed_gram_newton_schulz(x_eigenvalues, coefs, most_negative_gram_eigenvalue, high_precision=high_precision, reset_indices=[])
+        max_q = stability_metric(q_results)
+        print(f"With no restarts, condition number of Q = {max_q:.3f}")
         return []
+
     if num_restarts > len(possible_positions):
         raise ValueError(f"Cannot have {num_restarts} restarts with only {len(coefs)} iterations")
 
@@ -59,21 +80,21 @@ def find_best_restarts(x_eigenvalues, coefs, most_negative_gram_eigenvalue, num_
 
     for i, restart_combo in enumerate(combinations(possible_positions, num_restarts)):
         test_restarts = list(restart_combo)
-        q_results = q_polynomials(x_eigenvalues, coefs, most_negative_gram_eigenvalue, reset_indices=test_restarts)
-        max_q = max(abs(v) for vals in q_results.values() for v in vals)
+        q_results = simulate_perturbed_gram_newton_schulz(x_eigenvalues, coefs, most_negative_gram_eigenvalue, high_precision=high_precision, reset_indices=test_restarts)
+        max_q = stability_metric(q_results)
 
-        if max_q < best_max_q or (best_max_q == float('inf') and max_q != float('inf')):
+        if max_q < best_max_q:
             best_max_q = max_q
             best_restarts = test_restarts
 
         if (i + 1) % max(1, total_combinations // 10) == 0 or i == 0:
-            print(f"  [{i+1}/{total_combinations}] Best so far: {best_restarts} with max Q = {best_max_q:.6f}")
+            print(f"  [{i+1}/{total_combinations}] Best so far: {best_restarts} with condition number of Q = {best_max_q:.3f}")
 
-    if best_max_q == float('inf'):
+    if not np.isfinite(best_max_q) or best_max_q >= 1e8:
         raise ValueError(
-            f"All {num_restarts} restart combinations resulted in infinite Q values. "
+            f"All {num_restarts} restart combinations resulted in blowups. "
             f"Need more restarts to achieve numerical stability. Try increasing num_restarts."
         )
 
-    print(f"\nBest restart locations (set `gram_newton_schulz_reset_iterations` in newton_schulz/gram_newton_schulz.py to this): {best_restarts} with max Q = {best_max_q:.6f}")
+    print(f"\nBest restart locations (set `gram_newton_schulz_reset_iterations` in newton_schulz/gram_newton_schulz.py to this): {best_restarts} with condition number of Q = {best_max_q:.3f}")
     return best_restarts

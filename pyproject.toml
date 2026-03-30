@@ -21,6 +21,9 @@ dependencies = [
     "nvidia-cutlass-dsl==4.4.2",
 ]
 
+[project.optional-dependencies]
+high-precision-autotune = ["flamp"]
+
 [project.urls]
 Homepage = "https://github.com/Dao-AILab/gram-newton-schulz"
 Repository = "https://github.com/Dao-AILab/gram-newton-schulz"
