@@ -9,7 +9,7 @@ import argparse
 
 import numpy as np
 
-from .coefficients import POLAR_EXPRESS_COEFFICIENTS
+from .coefficients import POLAR_EXPRESS_COEFFICIENT_TEN
 from .restart_autotune import find_best_restarts
 
 
@@ -52,7 +52,7 @@ def main():
             a, b, c = map(float, coef_str.split(','))
             coefs.append((a, b, c))
     else:
-        coefs = POLAR_EXPRESS_COEFFICIENTS
+        coefs = POLAR_EXPRESS_COEFFICIENT_TEN
 
     x_eigenvalues = np.logspace(0, -10, 10000)
 

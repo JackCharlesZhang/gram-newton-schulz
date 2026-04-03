@@ -18,7 +18,7 @@ from .muon_utils.muon_matrix_split_utils import (
 )
 from ..standard_newton_schulz import StandardNewtonSchulz
 from ..gram_newton_schulz import GramNewtonSchulz
-from ..coefficients import POLAR_EXPRESS_COEFFICIENTS, YOU_COEFFICIENTS
+from ..coefficients import POLAR_EXPRESS_COEFFICIENTS, YOU_COEFFICIENTS, POLAR_EXPRESS_COEFFICIENT_TEN
 from ..restart_autotune import find_best_restarts
 
 class Muon(Optimizer):
@@ -101,6 +101,7 @@ class Muon(Optimizer):
         if ns_coefficients_preset is not None:
             preset_map = {
                 "POLAR_EXPRESS_COEFFICIENTS": POLAR_EXPRESS_COEFFICIENTS,
+                "POLAR_EXPRESS_COEFFICIENT_TEN": POLAR_EXPRESS_COEFFICIENT_TEN,
                 "YOU_COEFFICIENTS": YOU_COEFFICIENTS,
             }
             if ns_coefficients_preset not in preset_map:
