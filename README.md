@@ -50,7 +50,7 @@ Requirements:
 - PyTorch 2.7.1+
 - CUDA 12.9+
 
-Install PyTorch first, then:
+Install PyTorch first, then install from PyPI with `pip install gram-newton-schulz --no-build-isolation` or from source:
 
 ```bash
 pip install . --no-build-isolation
